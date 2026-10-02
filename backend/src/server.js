@@ -1,8 +1,10 @@
 const express = require("express")
+const cors = require("cors")
 const PORT = 3000
 
 const app = express()
 
+app.use(cors())
 app.use(express.json())
 
 const tasks = [
@@ -44,7 +46,7 @@ app.post("/api/tasks", (req, res) => {
   res.status(201).json(task)
 })
 
-app.patch("/api/task/:id", (req, res) => {
+app.patch("/api/tasks/:id", (req, res) => {
   const id = Number(req.params.id)
 
   const task = tasks.find((t) => t.id === id)
@@ -58,7 +60,7 @@ app.patch("/api/task/:id", (req, res) => {
   res.json(task)
 })
 
-app.delete("/api/task/:id", (req, res) => {
+app.delete("/api/tasks/:id", (req, res) => {
   const id = Number(req.params.id)
 
   const taskInd = tasks.findIndex((t) => t.id === id)
