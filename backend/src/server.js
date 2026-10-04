@@ -1,79 +1,90 @@
-const express = require("express")
-const cors = require("cors")
-const PORT = 3000
+const express = require("express");
+const cors = require("cors");
+const pool = require("./db/database.js");
+const PORT = 3000;
 
-const app = express()
+const app = express();
 
-app.use(cors())
-app.use(express.json())
-
-const tasks = [
-  {
-    id: 1,
-    title: "Learn Docker",
-    completed: false,
-  },
-  {
-    id: 2,
-    title: "Build a Docker project",
-    completed: false,
-  },
-];
+app.use(cors());
+app.use(express.json());
 
 app.get("/api/health", (req, res) => {
-  res.json({status: "ok", message: "Backed is operational"})
-})
+  res.json({ status: "ok", message: "Backed is operational" });
+});
 
-app.get("/api/tasks", (req, res) => {
-  res.json(tasks)
-})
+app.get("/api/tasks", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM tasks ORDER BY id ASC");
 
-app.post("/api/tasks", (req, res) => {
-  const {title} = req.body
-
-  if(!title || title.trim() === ""){
-    return res.json({status: "failed", message: "Task title is required"})
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch tasks" });
   }
+});
 
-  const task = {
-    id: Date.now() + Math.floor(Math.random() * 10),
-    title: title.trim(),
-    completed: false
+app.post("/api/tasks", async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title || title.trim() === "") {
+      return res.status(400).json({ message: "Task title required" });
+    }
+
+    const result = await pool.query(
+      "INSERT INTO tasks (title) VALUES ($1) RETURNING *",
+      [title.trim()],
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to create task" });
   }
+});
 
-  tasks.push(task)
+app.patch("/api/tasks/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
 
-  res.status(201).json(task)
-})
+    const result = await pool.query(
+      `UPDATE tasks SET completed = NOT completed WHERE id = $1 RETURNING *`,
+      [id],
+    );
 
-app.patch("/api/tasks/:id", (req, res) => {
-  const id = Number(req.params.id)
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Task not found" });
+    }
 
-  const task = tasks.find((t) => t.id === id)
-
-  if(!task){
-    return res.status(404).json({message: "Task not found"})
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to update task" });
   }
+});
 
-  task.completed = !task.completed
+app.delete("/api/tasks/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
 
-  res.json(task)
-})
+    const result = await pool.query(
+      `DELETE FROM tasks WHERE id = $1 RETURNING *`,
+      [id],
+    );
 
-app.delete("/api/tasks/:id", (req, res) => {
-  const id = Number(req.params.id)
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Task not found" });
+    }
 
-  const taskInd = tasks.findIndex((t) => t.id === id)
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
 
-  if(taskInd === -1){
-    return res.status(404).json({message: "Task not found"})
+    res.status(500).json({
+      message: "Failed to delete task",
+    });
   }
-
-  const deletedTasks = tasks.splice(taskInd, 1)
-
-  return res.json(deletedTasks[0])
-})
+});
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
-})
+  console.log(`Server running on port ${PORT}`);
+});
