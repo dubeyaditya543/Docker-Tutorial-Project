@@ -15,7 +15,6 @@ app.get("/api/health", (req, res) => {
 app.get("/api/tasks", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM tasks ORDER BY id ASC");
-
     res.json(result.rows);
   } catch (error) {
     console.error(error);
