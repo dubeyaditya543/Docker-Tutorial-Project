@@ -1,7 +1,17 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+    image: task-manager-frontend:1.0
+    container_name: task-manager-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
   backend:
     build: 
-      context: ./backend
+      context: ./backend  #context tells compose file to build backend image from backend folder
     image: task-manager-backend:1.0
     container_name: task-manager-backend
     environment:
